@@ -3025,7 +3025,7 @@ function parseOFP() {
       // A block can contain multiple airports (each starting with METAR ICAO).
       // Split on METAR boundaries so each airport gets its own sub-block.
       const metarBounds = [];
-      const metarRe = /^METAR\s+([A-Z]{4})\b/mg;
+      const metarRe = /^(?:METAR|SPECI)\s+([A-Z]{4})\b/mg;
       let mr;
       while ((mr = metarRe.exec(block)) !== null) {
         metarBounds.push({ icao: mr[1], pos: mr.index });
@@ -4495,6 +4495,38 @@ function evalAirport(icao, etaZ, notamText, weatherText, wxWindowOverride) {
     if (/TWY.*CLSD/.test(n) && !rwyMatched.size) {
       const srcNm = notams.find(nm => /TWY.*CLSD/.test(nm.toUpperCase())) || '';
       issues.push({level:'yellow', text:'ℹ Taxiway closure', src:srcNm}); worst = bump(worst,'yellow');
+    }
+
+    // Approach procedure amended / minimums changed
+    // Fires on NOTAMs that change the instrument approach procedure itself:
+    // raised minimums, procedure amendments, DA/MDA changes, Cat II/III unavailable.
+    // These are operationally significant because published minima are no longer correct.
+    for (const nm of notams) {
+      const nu = nm.toUpperCase();
+      // Cat II / Cat III approach NOT AVBL → red (precision approach capability lost)
+      if (/CAT\s*II.*NOT\s+AVBL|CAT\s*III.*NOT\s+AVBL|CAT\s*II.*NA|CAT\s*III.*NA/.test(nu)) {
+        const w = xNW(nm);
+        if (!w || nwOverlap(w, etaMin)) {
+          issues.push({level:'red', text:'🔴 CAT II/III approach NOT AVBL', src:nm}); worst = 'red';
+        } else {
+          issues.push({level:'yellow', text:'⚠ CAT II/III NOTAM — outside ETA window', src:nm}); worst = bump(worst,'yellow');
+        }
+        break;
+      }
+    }
+    // IAP amended / minimums raised / procedure NA — report once per airport
+    for (const nm of notams) {
+      const nu = nm.toUpperCase();
+      // Matches: "IAP ... AMDT", raised mins ("INCREASED FR ... TO"), DA/MDA changed,
+      // "PROC NA", approach type NOT AVBL / NA, "RNP" procedure notes
+      if (!/\bIAP\b|MINIMUMS?\s+(?:INCREASED|CHANGED|REVISED|AMENDED)|INCREASED\s+FR\s+\d|\bDA.*\/HAT|\bMDA.*\/HAT|\bPROC\s+NA\b|ILS.*NOT\s+AVBL|\bLPV.*DA|LNAV.*MDA|RNAV.*(?:AMDT|REVISED|CHANGED)/.test(nu)) continue;
+      const w = xNW(nm);
+      if (!w || nwOverlap(w, etaMin)) {
+        issues.push({level:'yellow', text:'⚠ Approach procedure / minimums amended', src:nm}); worst = bump(worst,'yellow');
+      } else {
+        issues.push({level:'yellow', text:'ℹ Approach NOTAM — outside ETA window', src:nm}); worst = bump(worst,'yellow');
+      }
+      break; // one advisory per airport
     }
 
     // Volcanic ash

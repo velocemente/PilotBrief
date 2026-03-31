@@ -8,7 +8,7 @@
 
 ## Overview
 
-Relief Pilot is a progressive web app (PWA) that parses Atlas Air and Polar Air Cargo Operational Flight Plans (OFPs) and presents a structured, interactive briefing note. It is designed for iPad, optimised for iOS Slide Over, and works fully offline in airplane mode after the initial load.
+Relief Pilot is a progressive web app (PWA) that parses Atlas Air and Polar Air Cargo Operational Flight Plans (OFPs) and presents a structured, interactive briefing note. Designed for iPad, optimised for iPadOS Slide Over, and works fully offline in airplane mode after the initial load.
 
 ---
 
@@ -63,14 +63,32 @@ Relief Pilot is a progressive web app (PWA) that parses Atlas Air and Polar Air 
 - In the flight screen nav bar, left of the FCIR/ASAP toggle
 - Activates a narrative notepad on every phase for event documentation
 - Flight ID turns yellow; flight list row stays highlighted across sessions
-- Flight cannot be deleted while toggle is ON — prevents accidental loss before report submission
+- Flight cannot be deleted while toggle is ON
 
 ### Additional
-- **Per-user data isolation** — each browser profile has its own private storage; shared iPads with separate Safari profiles maintain separate flight records
+- **Per-user data isolation** — each browser profile has its own private storage
 - **Dark mode** — full iOS semantic color token system (light / dark / auto)
 - **Slide Over optimised** — icon-only tab bar and compact layout at ≤400pt width
 - **Apple Pencil Scribble** — all text fields accept stylus input
 - **Offline-first** — service worker pre-caches app shell and pdf.js at install; works fully in airplane mode after first load
+
+---
+
+## Files
+
+```
+index.html          ← single-file app (all HTML/CSS/JS)
+sw.js               ← service worker (offline-first, cache v1.9.0-dev-r2)
+manifest.json       ← PWA manifest
+notam-rules.js      ← NOTAM interpretation ruleset (reference / test module)
+_headers            ← Netlify/Cloudflare Pages headers (MIME, cache, security)
+icons/
+  icon-192.png      ← PWA icon (192×192)
+  icon-512.png      ← PWA icon (512×512)
+.github/
+  workflows/
+    deploy.yml      ← GitHub Actions → GitHub Pages on push to main
+```
 
 ---
 
@@ -95,44 +113,48 @@ Relief Pilot is a progressive web app (PWA) that parses Atlas Air and Polar Air 
 
 ### v1.9.0-dev-r2
 
-#### Offline-first service worker (new)
-- Added `<link rel="manifest">` and service worker registration — previously neither was wired into the app, so offline mode never worked
-- pdf.js and its worker are now pre-cached at SW install time, making PDF import available offline
-- Proper cache-first fetch strategy with background revalidation; safe 503 fallback on total network failure; no bare `fetch()` passthrough
+#### SPECI observation parsing (fix)
+- Origin weather sections opening with `SPECI` (special observation) rather than routine `METAR` were not parsed — the wx/NOTAM block parser anchored on `^METAR ICAO` only, silently dropping all weather and NOTAMs for the origin airport when the OFP started the section with a SPECI
+- Fixed: section anchor now matches `^(?:METAR|SPECI)\s+ICAO` — both observation types parsed identically
 
-#### NOTAM raw data display (new)
-- Tappable alert items on Airport cards now show the triggering NOTAM entry or TAF group in a scrollable `<pre>` block with full word-wrapping — previously used an `<input>` (single-line only) which truncated all data
+#### Approach minimums NOTAM rules (new)
+Two new evaluation rules added to both `evalAirport()` in `index.html` and `_classifyNotamSlot()` in `notam-rules.js`:
 
-#### Descent subcard — arrival airport status (new)
-- Live color dot + issue tags for the selected arrival airport at the top of the Arrival subcard
-- Tap the ICAO code to switch to any non-origin airport on the release (diversion support)
+**CAT II/III NOT AVBL → 🔴 Red**
+- Fires when a NOTAM contains `CAT II.*NOT AVBL`, `CAT III.*NOT AVBL`, or similar — covers the Atlas OFP parenthetical format `RWY 07(CAT II) NOT AVBL DUE TO TEMPO OBST`
+- Loss of Cat II/III precision approach capability is treated as a red alert at ETA; yellow if outside window
 
-#### TLR Landing items on Descent (new)
-- DDG items with TLR Landing or Takeoff+Landing cross-references appear automatically below the Parking field on the Descent phase
+**IAP amended / minimums raised → ⚠ Yellow**
+- Fires on NOTAMs containing: `IAP`, `INCREASED FR \d` (Atlas-style raised minimums), `DA/HAT` or `MDA/HAT` values, `PROC NA`, `LPV DA`, `LNAV MDA`, or `RNAV.*AMDT`
+- Catches the full range of Atlas OFP approach procedure amendment patterns including: `ILS Z RWY 07(CAT I) INCREASED FR 287(200)FT TO 387(300)FT` and `RNAV (RNP) Z RWY 07(LPV) INCREASED FR 430(343)FT TO 510(423)FT`
 
-#### Per-user data isolation (new)
-- Each browser profile generates a stable UUID on first visit; all flight records and preferences are namespaced to that UUID
-- Crew members sharing one iPad but using separate Safari profiles have completely isolated data
+#### notam-rules.js updates (v1.9.0-dev-r2)
+- `NM.CAT_II_NA` — new pattern: Cat II/III NOT AVBL, handles Atlas parenthetical format
+- `NM.IAP_CHG` — new pattern: IAP/ILS/LPV/LNAV/RNAV/RNP amended minimums
+- `NM.APCH_CHG` — expanded: now includes `INCREASED\s+FR\s+\d` to catch Atlas minimums-raised phrasing
+- `_classifyNotamSlot()` DEST/ALT path: `CAT_II_NA` → slot 2 red; `IAP_CHG` added to slot 3 condition
+- `_classifyNotamSlot()` ORIG path: `CAT_II_NA` → slot 4 red; `IAP_CHG` added to slot 4 condition
 
-#### Slide Over layout (new)
-- `@media (max-width: 400px)` breakpoint targets iPadOS Slide Over (~320pt)
-- Tab bar icons only (labels hidden); enroute split stacks vertically; tighter padding throughout
+#### Offline-first service worker (fix, from prior build)
+- Added `<link rel="manifest">` and service worker registration — previously missing
+- pdf.js pre-cached at install; safe 503 fallback on total network failure
 
-#### Airport card weather alert changes
-- PROB40 standalone trigger removed — captured by ceiling/visibility triggers if relevant
-- "Below mins" label removed — alert shows `🔴 — VIS x  CIG xft` directly
+#### NOTAM raw data panel (fix, from prior build)
+- Tappable alert items now use a `<pre>` block with `word-break:break-word` — previously used an `<input>` (single-line only) which truncated long NOTAMs
 
-#### Instructions screen (revised)
-- Full rewrite covering all current features: phase tabs, enroute events, descent airport picker, TLR Landing items, tappable alerts, weather categories, data isolation
-- Help icon `?` added to flight screen nav bar (left of FCIR toggle), links directly to Instructions
-- Instructions accessible from both the flight screen and Settings
+#### Descent subcard additions (from prior build)
+- Arrival airport status row with tappable ICAO and airport picker
+- TLR Landing items auto-displayed below Parking
+
+#### Per-user data isolation (from prior build)
+- UUID-namespaced localStorage keys per browser profile
 
 ---
 
 ### v1.9.0
 
 #### Enroute subcard
-- OFF time entry cascades IN time using OFP ETE (`tripMinutes`); alternate ETAs recalculate from offZ
+- OFF time entry cascades IN time using OFP ETE; alternate ETAs recalculate from offZ
 - RDA displayed as single time (2 hrs before POR), not a window
 - POR shows waypoint + time + MINF from OFP column 2
 
@@ -146,9 +168,6 @@ Relief Pilot is a progressive web app (PWA) that parses Atlas Air and Polar Air 
 
 #### TOGW color coding fixed
 - Limit codes `L` (LDW+trip) and `I` (dispatcher) now parsed correctly; was `[SP]`, now `[SPLI]`
-
-#### Tappable airport alert triggers (new)
-- Each alert row with a `›` chevron opens the raw NOTAM/TAF source in a read-only sheet
 
 ---
 
