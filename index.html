@@ -1484,11 +1484,19 @@ body {
   /* Narrow: show rest inside the split (below scratchpad), hide outer copy */
   .rest-module-narrow  { display: block; margin-top: var(--sp3); }
   .rest-module-regular { display: none; }
+  /* 4-pilot schedule: stack halves above quarters in narrow mode */
+  .rest-4pilot-grid { flex-direction: column; }
 }
 /* Regular: show rest as its own subcard, hide inner copy */
 @media (min-width: 401px) {
   .rest-module-narrow  { display: none; }
   .rest-module-regular { display: block; }
+}
+/* 4-pilot schedule columns — side-by-side in regular, stacked in narrow */
+.rest-4pilot-grid {
+  display: flex;
+  flex-direction: row;
+  gap: var(--sp3);
 }
 .enroute-scratchpad {
   flex: 1; width: 100%; min-height: 180px; resize: none;
@@ -7657,7 +7665,7 @@ function renderInflightRestModule() {
       } else {
         h += `<div style="font-size:var(--type-overline);font-weight:700;color:var(--label3);
                 text-transform:uppercase;letter-spacing:0.05em;margin-bottom:var(--sp3)">Schedule</div>`;
-        h += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp3)">`;
+        h += `<div class="rest-4pilot-grid">`;
         h += renderBlockColumn('Halves',   data.blocksH, fmtZ, fmtDur);
         h += renderBlockColumn('Quarters', data.blocksQ, fmtZ, fmtDur);
         h += `</div>`;
