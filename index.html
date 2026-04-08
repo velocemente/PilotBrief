@@ -630,7 +630,7 @@ body {
 /* Tab content panels — only active one visible */
 .flight-panel {
   display: none;
-  flex: 1;
+  flex: 1; min-height: 0;
   flex-direction: column;
   overflow: hidden;
   position: relative;
@@ -640,7 +640,7 @@ body {
 }
 /* briefing-outer and briefing-scroll live inside the note panel */
 .flight-panel .briefing-outer {
-  flex: 1;
+  flex: 1; min-height: 0;
 }
 
 #screen-settings {
@@ -688,9 +688,58 @@ body {
   padding-top: max(calc(var(--sat) + 8px), 14px);
   min-height: max(calc(var(--sat) + 52px), 60px);
 }
+/* Slide Over / narrow window: two-row flight nav bar
+   Row 1 — brand icon centred (full width)
+   Row 2 — ‹ Flights left, FCIR/ASAP right                     */
+@media (max-width: 400px) {
+  #flightNavBar {
+    flex-wrap: wrap;
+    align-content: flex-start;
+    min-height: max(calc(var(--sat) + 96px), 104px);
+    padding-left:  max(calc(var(--sal) + var(--sp3)), 12px);
+    padding-right: max(calc(var(--sar) + var(--sp3)), 12px);
+    padding-bottom: 0;
+    row-gap: 0;
+  }
+
+  /* Brand: escape absolute positioning, become full-width first row */
+  #flightNavBar .nav-brand-title {
+    position: static;
+    width: 100%;
+    order: -1;
+    justify-content: center;
+    align-items: center;
+    min-height: 44px;
+    padding-bottom: 0;
+    padding-top: max(calc(var(--sat) + 2px), 6px);
+  }
+
+  /* Back button: left of second row */
+  #flightNavBar .nav-back {
+    order: 1;
+    align-self: center;
+    padding-bottom: 0;
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  /* Right cluster: right of second row */
+  #flightNavRight {
+    order: 1;
+    margin-left: auto;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  /* Tighten FCIR label text in narrow mode */
+  #flightNavBar .fcir-label {
+    font-size: 11px;
+    letter-spacing: 0.01em;
+  }
+}
 /* Briefing panel: sticky header + scrolling body */
 .briefing-outer {
-  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
 }
 .briefing-sticky-header {
   flex-shrink: 0;
@@ -699,7 +748,7 @@ body {
   border-bottom: 0.5px solid var(--sep);
 }
 .briefing-scroll {
-  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: var(--sp4)
     calc(var(--sar) + var(--sp5))
     calc(var(--sab) + var(--sp10))
@@ -1704,7 +1753,7 @@ body {
       <span class="nb-label">PilotBrief</span>
     </span>
     <!-- Right cluster: Help → FCIR -->
-    <div style="display:flex;align-items:center;gap:0;margin-left:auto">
+    <div id="flightNavRight" style="display:flex;align-items:center;gap:0;margin-left:auto">
       <button class="help-btn" onclick="push('screen-help')" aria-label="Help and instructions">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="9.5"/>
@@ -4470,10 +4519,10 @@ const NM = {
   AD_CLSD:    /\bAD\s+CLSD\b|\bAIRPORT\s+CLSD\b/,
   // RWY_CLSD: match explicit RWY N CLSD or RWY ALL CLSD.
   // Also catches "RWY 06L/24R CLSD" and "RWY 06L CLSD EXC..." patterns.
-  RWY_CLSD:   /\bRWY\s+(?:ALL\s+CLSD|\d{2}[LCRB]?(?:\s*(?:\/|AND)\s*\d{2}[LCRB]?)?\s+CLSD)\b/,
-  RWY_ID:     /RWY\s+(\d{2}[LCRB]?(?:\s*(?:\/|AND)\s*\d{2}[LCRB]?)?)/,
+  RWY_CLSD:   /\bRWY\s+(?:ALL\s+CLSD|\d{1,2}[LCRB]?(?:\s*(?:\/|AND)\s*\d{1,2}[LCRB]?)?\s+CLSD)\b/,
+  RWY_ID:     /RW(?:Y)?\s*(\d{1,2}[LCRB]?(?:\s*(?:\/|AND)\s*\d{1,2}[LCRB]?)?)/,
   // RWY_ID_ALL: extract ALL runway identifiers from a NOTAM (for grouping)
-  RWY_ID_ALL: /RWY\s+(\d{2}[LCRB]?)/gi,
+  RWY_ID_ALL: /RW(?:Y)?\s*(\d{1,2}[LCRB]?)/gi,
 
   TWY_CLSD:   /\bTWY\s+[A-Z0-9]+(?:\s*[,\/]\s*[A-Z0-9]+)*\s+CLSD\b/,
   TWY_RESTR:  /\bTWY\s+[A-Z0-9]+(?:\s*[,\/]\s*[A-Z0-9]+)*.*?(?:RESTR|RESTRICTED|WIDTH\s+LTD|WS\s+LTD|WINGSPAN|ACFT\s+SPAN|SPAN\s+LTD|MAX\s+WS|WS\s+\d+M|WINGSP)/i,
@@ -4482,10 +4531,16 @@ const NM = {
   TWY_TYPE:   /(?:B7[0-9]{2}|A3[0-9]{2}|B[0-9]{3}[A-Z]?|A[0-9]{3}[A-Z]?)\b/g,
 
   // ── ORIG slots ──
-  SID:        /\bSID\b.*?(?:AMDT|CHANGE|INOP|CLSD|TEMP|PROC|PROC\s+CHANGE|NOT\s+AVBL|SUSPENDED)/i,
+  SID:        /\bSID\b.*?(?:AMDT|CHANGE|INOP|CLSD|TEMP|PROC|PROC\s+CHANGE|NOT\s+AVBL|SUSPENDED|\bNA\b)/i,
   SID_NAME:   /\bSID\s+([A-Z]+\d[A-Z]?\b)/,
 
-  // ── DEST/ALT slots ──
+  // TKOF_MIN: Takeoff minimums / ODP (Obstacle Departure Procedure) changes.
+  // These affect departure climb gradients and non-standard takeoff criteria per RWY.
+  // Signals: "TAKEOFF MINIMUMS", "MINIMUM CLIMB OF xxx FT PER NM", "OBST DEP PROC", "ODP".
+  // Runway extracted from first RWY xx[LCR] group in the NOTAM text.
+  TKOF_MIN:   /\bTAKEOFF\s+MINIMUMS?\b|\bOBST(?:ACLE)?\s+DEP(?:ARTURE)?\s+PROC(?:EDURE)?|\bMINIMUM\s+CLIMB\s+OF\s+\d+\s+FT\s+PER\s+NM|\bCLIMB\s+GRADIENT\b/i,
+  // Captures the climb rate when present (e.g. "460 FT PER NM") for label
+  TKOF_MIN_RATE: /(\d+)\s*FT\s+PER\s+NM/i,
 
   // ── Tier 1: Precision approach / guidance equipment ─────────────────────
   // GS_US: Glide slope / glide path specifically unserviceable (ILS degrades to LOC-only)
@@ -4553,9 +4608,9 @@ const NM = {
 
   // APCH_NAME: extract approach type + runway — extended to handle Atlas "ILS Z RWY 07" patterns
   // Group 1 = approach type/designator, Group 2 = runway
-  APCH_NAME:  /(?:(ILS\s*[A-Z]?|LOC|RNAV(?:\s*\([A-Z]+\))?\s*[A-Z]?|RNP\s*[A-Z]?|VOR(?:\/DME)?|NDB|LDA|GLS|GBAS))\s+(?:RWY\s+)?(\d{2}[LCRB]?)/i,
+  APCH_NAME:  /(?:(ILS\s*[A-Z]?|LOC|RNAV(?:\s*\([A-Z]+\))?\s*[A-Z]?|RNP\s*[A-Z]?|VOR(?:\/DME)?|NDB|LDA|GLS|GBAS))\s+(?:RWY\s+)?(\d{1,2}[LCRB]?)/i,
   // APCH_RWY: extract just the runway number from an approach NOTAM (for grouping)
-  APCH_RWY:   /(?:ILS|LOC|GLS|RNAV|RNP|VOR|NDB|LDA|GBAS|GS|G\/S|G\/P|GP|IFR\s+APCH|APPROACH|IAP).*?RWY\s+(\d{2}[LCRB]?)/i,
+  APCH_RWY:   /(?:ILS|LOC|GLS|RNAV|RNP|VOR|NDB|LDA|GBAS|GS|G\/S|G\/P|GP|IFR\s+APCH|APPROACH|IAP).*?RWY\s+(\d{1,2}[LCRB]?)/i,
 
   // APCH_TYPE_NA: a specific approach type (not the full ILS) is not available
   APCH_TYPE_NA: /(?:LOC\s+ONLY|BACKCOURSE.*(?:NA|NOT\s+AVBL|OTS)|VOR\s+APCH.*(?:NA|NOT\s+AVBL)|NDB\s+APCH.*(?:NA|NOT\s+AVBL)|CAT\s+I\s+ONLY|PRECISION\s+APCH.*(?:NA|NOT\s+AVBL))/i,
@@ -4668,8 +4723,10 @@ function _twyApplies(notamText, acftType) {
  */
 function _classifyNotamSlot(nu, notamRaw, role, acftType, active) {
   const isOrig = role === 'ORIG';
-  const activeSlotBase = isOrig ? 6 : 7; // "active during period" catch-all slot
-  const otherSlot      = isOrig ? 7 : 8; // "all other" catch-all slot
+  // Zero-pad single-digit runway designators: '6L' → '06L', '9' → '09'
+  const _pad2 = s => s ? s.replace(/^(\d)([LCRB]?)$/, '0$1$2').toUpperCase() : s;
+  const activeSlotBase = isOrig ? 7 : 7; // "active during period" catch-all slot
+  const otherSlot      = isOrig ? 8 : 8; // "all other" catch-all slot
 
   // ── AD Closed — always RED, always slot 1 ──────────────────────────────
   if (NM.AD_CLSD.test(nu)) {
@@ -4679,7 +4736,7 @@ function _classifyNotamSlot(nu, notamRaw, role, acftType, active) {
   // ── Closed Runways (slot 1 both roles) ───────────────────────────────
   if (NM.RWY_CLSD.test(nu)) {
     const rm = nu.match(NM.RWY_ID);
-    const rwy = rm ? rm[1].replace(/\s+/g,'') : null;
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     return { slot: 1, level: 'red', label: `RWY ${rwy || 'CLSD'} CLSD`, keyRe: NM.CLSD_WORDS, rwy };
   }
 
@@ -4690,65 +4747,89 @@ function _classifyNotamSlot(nu, notamRaw, role, acftType, active) {
 
   // ──────── ORIGIN-specific slots ──────────────────────────────────────
   if (isOrig) {
-    // Slot 2 — Closed / wingspan-restricted taxiways
+    // Slot 1 — Closed runways / airport / volcanic (handled above, shared)
+
+    // Slot 2 — Takeoff minimums / ODP (NON-STANDARD DEPARTURE CRITERIA)
+    // Highest priority after closures: affects departure climb capability.
+    // Shown at the top of the ORIG airport card.
+    if (NM.TKOF_MIN.test(nu)) {
+      const rm   = nu.match(NM.RWY_ID);
+      const rwy  = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
+      const rateM = nu.match(NM.TKOF_MIN_RATE);
+      const rate  = rateM ? ` ${rateM[1]}FT/NM` : '';
+      const lbl   = `TKOF MIN${rwy ? ' RWY ' + rwy : ''}${rate}`;
+      return { slot: 2, level: 'yellow', label: lbl, keyRe: NM.RESTR_WORDS, rwy };
+    }
+
+    // Slot 3 — Closed / wingspan-restricted taxiways
     if (NM.TWY_CLSD.test(nu) || (NM.TWY_RESTR.test(nu) && _twyApplies(notamRaw, acftType))) {
       const tm = nu.match(NM.TWY_ID);
       const twy = tm ? tm[1] : 'TWY';
       const isClosed = NM.CLSD_WORDS.test(nu);
       return {
-        slot: 2,
+        slot: 3,
         level: isClosed ? 'red' : 'yellow',
         label: `TWY ${twy} ${isClosed ? 'CLSD' : 'RESTR'}`,
         keyRe: isClosed ? NM.CLSD_WORDS : NM.RESTR_WORDS,
       };
     }
 
-    // Slot 3 — SID changes
+    // Slot 4 — SID changes
     if (NM.SID.test(nu)) {
       const sm = nu.match(NM.SID_NAME);
       const sid = sm ? sm[1] : 'SID';
       const isUS = NM.US_WORDS.test(nu);
-      return { slot: 3, level: isUS ? 'red' : 'yellow', label: `SID ${sid} CHANGE`, keyRe: isUS ? NM.US_WORDS : NM.RESTR_WORDS };
+      return { slot: 4, level: isUS ? 'red' : 'yellow', label: `SID ${sid} CHANGE`, keyRe: isUS ? NM.US_WORDS : NM.RESTR_WORDS };
     }
 
-    // Slot 4 — Approach changes (includes Cat II/III N/A and IAP minimums raises)
+    // Slot 5 — Approach changes (includes Cat II/III N/A and IAP minimums raises)
     if (NM.CAT_II_NA.test(nu)) {
       const am = nu.match(NM.APCH_NAME);
-      const rwy = am ? am[2] : null;
-      const apch = am ? `${am[1].trim()} RWY ${am[2]}` : 'APCH';
-      return { slot: 4, level: 'red', label: `${apch} CAT II/III N/A`, keyRe: NM.CAT_II_NA, rwy };
+      const rwy = am ? _pad2(am[2]) : null;
+      const apch = am ? `${am[1].trim()} RWY ${_pad2(am[2])}` : 'APCH';
+      return { slot: 5, level: 'red', label: `${apch} CAT II/III N/A`, keyRe: NM.CAT_II_NA, rwy };
     }
     if (NM.GS_US.test(nu)) {
       const rm = nu.match(NM.APCH_RWY);
-      const rwy = rm ? rm[1] : null;
+      const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
       const rwylabel = rwy ? ` RWY ${rwy}` : '';
-      return { slot: 4, level: 'red', label: `ILS GS U/S${rwylabel} (LOC ONLY)`, keyRe: NM.US_WORDS, rwy };
+      return { slot: 5, level: 'red', label: `ILS GS U/S${rwylabel} (LOC ONLY)`, keyRe: NM.US_WORDS, rwy };
     }
     if (NM.APCH_CHG.test(nu) || NM.APCH_MIN.test(nu) || NM.IAP_CHG.test(nu)) {
       const am = nu.match(NM.APCH_NAME);
-      const rwy = am ? am[2] : null;
-      const apch = am ? `${am[1].trim()} RWY ${am[2]}` : 'APCH';
-      return { slot: 4, level: 'yellow', label: `${apch} CHANGE`, keyRe: NM.RESTR_WORDS, rwy };
+      const rwy = am ? _pad2(am[2]) : null;
+      const apch = am ? `${am[1].trim()} RWY ${_pad2(am[2])}` : 'APCH';
+      return { slot: 5, level: 'yellow', label: `${apch} CHANGE`, keyRe: NM.RESTR_WORDS, rwy };
     }
     if (NM.APCH_TYPE_NA.test(nu)) {
       const rm = nu.match(NM.APCH_RWY);
-      const rwy = rm ? rm[1] : null;
-      return { slot: 4, level: 'yellow', label: `APCH TYPE CHG${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.RESTR_WORDS, rwy };
+      const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
+      return { slot: 5, level: 'yellow', label: `APCH TYPE CHG${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.RESTR_WORDS, rwy };
+    }
+    if (NM.DME_US.test(nu)) {
+      const rm = nu.match(NM.APCH_RWY) || nu.match(NM.RWY_ID);
+      const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
+      return { slot: 5, level: 'yellow', label: `ILS DME U/S${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.US_WORDS, rwy };
+    }
+    if (NM.PAPI_US.test(nu)) {
+      const rm = nu.match(NM.RWY_ID);
+      const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
+      return { slot: 5, level: 'yellow', label: `PAPI/VASI U/S${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.US_WORDS, rwy };
     }
     if (NM.ALT_MINS_CHG.test(nu)) {
       const rm = nu.match(NM.APCH_RWY);
-      const rwy = rm ? rm[1] : null;
-      return { slot: 4, level: 'yellow', label: `ALT MINS CHG${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.RESTR_WORDS, rwy };
+      const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
+      return { slot: 5, level: 'yellow', label: `ALT MINS CHG${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.RESTR_WORDS, rwy };
     }
 
-    // Slot 5 — Alternate missed approach
+    // Slot 6 — Alternate missed approach
     if (NM.ALT_MA.test(nu)) {
-      const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i) || nu.match(NM.APCH_RWY);
-      const rwy = rm ? rm[1] : null;
-      return { slot: 5, level: 'yellow', label: `ALT MA PROC CHANGE${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.RESTR_WORDS, rwy };
+      const rm = nu.match(NM.RWY_ID) || nu.match(NM.APCH_RWY);
+      const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
+      return { slot: 6, level: 'yellow', label: `ALT MA PROC CHANGE${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.RESTR_WORDS, rwy };
     }
 
-    // Slot 6 — Active during departure period / slot 7 — all others
+    // Slot 7 (active) / Slot 8 (other) — catch-all
     return { slot: active ? activeSlotBase : otherSlot, level: 'yellow', label: null, keyRe: null };
   }
 
@@ -4760,37 +4841,37 @@ function _classifyNotamSlot(nu, notamRaw, role, acftType, active) {
   // Slot 2a — CAT II/III NOT AVBL → RED
   if (NM.CAT_II_NA.test(nu)) {
     const am = nu.match(NM.APCH_NAME);
-    const rwy = am ? am[2] : null;
-    const apch = am ? `${am[1].trim()} RWY ${am[2]}` : 'APCH';
+    const rwy = am ? _pad2(am[2]) : null;
+    const apch = am ? `${am[1].trim()} RWY ${_pad2(am[2])}` : 'APCH';
     return { slot: 2, level: 'red', label: `${apch} CAT II/III N/A`, keyRe: NM.CAT_II_NA, rwy };
   }
 
   // Slot 2b — Glide slope specifically U/S (ILS → LOC-only)
   if (NM.GS_US.test(nu)) {
-    const rm = nu.match(NM.APCH_RWY) || nu.match(/RWY\s+(\d{2}[LCRB]?)/i);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.APCH_RWY) || nu.match(NM.RWY_ID);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     return { slot: 2, level: 'red', label: `ILS GS U/S${rwy ? ' RWY ' + rwy : ''} (LOC ONLY)`, keyRe: NM.US_WORDS, rwy };
   }
 
   // Slot 2c — Localizer (full word) U/S
   if (NM.LOC_US.test(nu)) {
-    const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.RWY_ID);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     return { slot: 2, level: 'red', label: `LOC U/S${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.US_WORDS, rwy };
   }
 
   // Slot 2d — Full approach system U/S (ILS/LOC/RNAV/VOR/NDB/GLS)
   if (NM.APCH_US.test(nu)) {
     const am = nu.match(NM.APCH_NAME);
-    const rwy = am ? am[2] : null;
-    const apch = am ? `${am[1].trim()} RWY ${am[2]}` : 'APCH';
+    const rwy = am ? _pad2(am[2]) : null;
+    const apch = am ? `${am[1].trim()} RWY ${_pad2(am[2])}` : 'APCH';
     return { slot: 2, level: 'red', label: `${apch} U/S`, keyRe: NM.US_WORDS, rwy };
   }
 
   // Slot 2e — DME U/S — RED for approach DME, YELLOW for en-route DME
   if (NM.DME_US.test(nu)) {
-    const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.RWY_ID);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     const isApchDme = /ILS\s+DME|APCH\s+DME|APPROACH\s+DME/i.test(nu);
     return { slot: 2, level: isApchDme ? 'red' : 'yellow', label: `DME U/S${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.US_WORDS, rwy };
   }
@@ -4805,29 +4886,29 @@ function _classifyNotamSlot(nu, notamRaw, role, acftType, active) {
   // Slot 3 — Approach procedure / minimums changes (IAP_CHG covers Atlas OFP format)
   if (NM.APCH_CHG.test(nu) || NM.APCH_MIN.test(nu) || NM.IAP_CHG.test(nu)) {
     const am = nu.match(NM.APCH_NAME);
-    const rwy = am ? am[2] : null;
-    const apch = am ? `${am[1].trim()} RWY ${am[2]}` : 'APCH';
+    const rwy = am ? _pad2(am[2]) : null;
+    const apch = am ? `${am[1].trim()} RWY ${_pad2(am[2])}` : 'APCH';
     return { slot: 3, level: 'yellow', label: `${apch} PROC CHANGE`, keyRe: NM.RESTR_WORDS, rwy };
   }
 
   // Slot 3b — Approach type degraded (LOC only, CAT I only, precision N/A)
   if (NM.APCH_TYPE_NA.test(nu)) {
     const rm = nu.match(NM.APCH_RWY);
-    const rwy = rm ? rm[1] : null;
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     return { slot: 3, level: 'yellow', label: `APCH TYPE CHG${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.RESTR_WORDS, rwy };
   }
 
   // Slot 3c — Alternate minimums changed
   if (NM.ALT_MINS_CHG.test(nu)) {
     const rm = nu.match(NM.APCH_RWY);
-    const rwy = rm ? rm[1] : null;
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     return { slot: 3, level: 'yellow', label: `ALT MINS CHG${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.RESTR_WORDS, rwy };
   }
 
   // Slot 3d — Marker beacons U/S (OM/MM/LOM) — DA awareness cue lost
   if (NM.MARKER_US.test(nu)) {
-    const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.RWY_ID);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     const isOM = /\b(?:OUTER\s+MARKER|LOM|OM)\b/i.test(nu);
     const lbl = isOM ? `OM/LOM U/S${rwy ? ' RWY ' + rwy : ''}` : `MARKER U/S${rwy ? ' RWY ' + rwy : ''}`;
     return { slot: 3, level: 'yellow', label: lbl, keyRe: NM.US_WORDS, rwy };
@@ -4851,44 +4932,44 @@ function _classifyNotamSlot(nu, notamRaw, role, acftType, active) {
   // RED: primary ALS (ALSF-1/2, MALSR, SSALR) — large minima increase
   // YELLOW: supplemental (MALS, REIL, ODALS) — minor impact
   if (NM.ALS_US.test(nu)) {
-    const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.RWY_ID);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     const isPrimary = /ALSF|MALSR|SSALR|SSALF/i.test(nu);
     return { slot: 3, level: isPrimary ? 'red' : 'yellow', label: `ALS U/S${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.US_WORDS, rwy };
   }
 
   // Slot 3h — PAPI/VASI U/S — visual glide path reference lost
   if (NM.PAPI_US.test(nu)) {
-    const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.RWY_ID);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     return { slot: 3, level: 'yellow', label: `PAPI/VASI U/S${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.US_WORDS, rwy };
   }
 
   // Slot 3i — REIL U/S — runway end identifier lights
   if (NM.REIL_US.test(nu)) {
-    const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.RWY_ID);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     return { slot: 3, level: 'yellow', label: `REIL U/S${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.US_WORDS, rwy };
   }
 
   // Slot 3j — Runway centerline lights U/S — Cat II/III and low-vis ops requirement
   if (NM.RCLL_US.test(nu)) {
-    const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.RWY_ID);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     return { slot: 3, level: 'yellow', label: `RCLL U/S${rwy ? ' RWY ' + rwy : ''} (CAT II/III IMPACT)`, keyRe: NM.US_WORDS, rwy };
   }
 
   // Slot 3k — Touchdown zone lights U/S — Cat II/III requirement
   if (NM.TDZ_US.test(nu)) {
-    const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.RWY_ID);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     return { slot: 3, level: 'yellow', label: `TDZ LGTS U/S${rwy ? ' RWY ' + rwy : ''} (CAT II/III IMPACT)`, keyRe: NM.US_WORDS, rwy };
   }
 
   // Slot 3l — runway edge / operational lights U/S
   if (NM.RWY_LGTS_US.test(nu)) {
-    const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.RWY_ID);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     // Extract the specific light system for a more informative label
     let lgtsType = 'RWY LGTS';
     if (/\bHIRL\b/i.test(nu))            lgtsType = 'HIRL';
@@ -4901,15 +4982,15 @@ function _classifyNotamSlot(nu, notamRaw, role, acftType, active) {
 
   // Slot 3m — Displaced threshold — affects LDA and approach minima
   if (NM.DSPLCD_THR.test(nu)) {
-    const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.RWY_ID);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     return { slot: 3, level: 'yellow', label: `DSPLCD THR${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.RESTR_WORDS, rwy };
   }
 
   // ── DEST / ALT SLOT 4: Alternate missed approach ──────────────────────────
   if (NM.ALT_MA.test(nu)) {
-    const rm = nu.match(/RWY\s+(\d{2}[LCRB]?)/i) || nu.match(NM.APCH_RWY);
-    const rwy = rm ? rm[1] : null;
+    const rm = nu.match(NM.RWY_ID) || nu.match(NM.APCH_RWY);
+    const rwy = rm ? _pad2(rm[1].replace(/\s+/g,'')) : null;
     return { slot: 4, level: 'yellow', label: `ALT MA PROC CHANGE${rwy ? ' RWY ' + rwy : ''}`, keyRe: NM.RESTR_WORDS, rwy };
   }
 
@@ -5004,8 +5085,11 @@ function evalNotams(notams, role, etaMin, acftType, flightDateISO) {
   for (const notamRaw of notams) {
     const nu = notamRaw.toUpperCase();
 
-    // ── Obstacle filter: skip pure obstacle NOTAMs (no approach keyword) ──
-    const hasApchKeyword = /\b(?:ILS|LOC|GLS|RNAV|RNP|NDB|VOR|LDA|GBAS|GS|G\/S|G\/P|GP|IFR\s+APCH|IAP|APCH|PROC|RWY|SID|STAR|CAT\s+I{1,3})\b/i.test(notamRaw);
+    // ── Obstacle filter: skip pure obstacle NOTAMs (no approach/departure keyword) ──
+    // ODP/Takeoff Minimums NOTAMs often contain "OBST" in the title but are operationally
+    // critical — always pass them through regardless of other keywords.
+    const hasTkofKeyword = /\bTAKEOFF\s+MINIMUMS?\b|\bOBST(?:ACLE)?\s+DEP(?:ARTURE)?\s+PROC|\bODP\b|\bMINIMUM\s+CLIMB\b|\bMIN\s+CLIMB\b|\bCLIMB\s+GRADIENT\b/i.test(notamRaw);
+    const hasApchKeyword = hasTkofKeyword || /\b(?:ILS|LOC|GLS|RNAV|RNP|NDB|VOR|LDA|GBAS|GS|G\/S|G\/P|GP|IFR\s+APCH|IAP|APCH|PROC|RWY|SID|STAR|CAT\s+I{1,3})\b/i.test(notamRaw);
     if (/\bOBST\b|\bCRANE\b|\bOBSTACLE\b/.test(nu) && !hasApchKeyword) continue;
 
     // ── Aircraft applicability filter ─────────────────────────────────────
@@ -5098,8 +5182,8 @@ function evalNotams(notams, role, etaMin, acftType, flightDateISO) {
   // Items within each group are sorted alphabetically by rowLabel.
   //
   const RUNWAY_SLOTS_DEST = new Set([1, 2, 3, 4]);
-  const RUNWAY_SLOTS_ORIG = new Set([1, 4, 5]);
-  const TWY_SLOTS         = new Set([2, 6]); // taxiway slots (ORIG=2, DEST=6)
+  const RUNWAY_SLOTS_ORIG = new Set([1, 2, 5, 6]); // slot 2=TKOF_MIN, 5=approach, 6=ALT_MA
+  const TWY_SLOTS         = new Set([3, 6]); // taxiway slots: ORIG=3, DEST=6
   const runwaySlots = isOrig ? RUNWAY_SLOTS_ORIG : RUNWAY_SLOTS_DEST;
 
   const rwyGroups = new Map();
@@ -5400,7 +5484,7 @@ const S = {
   //   proc:        full special proc string, or '' for simple EFPs
   //   coChartNote: crew-entered text for "SEE CO CHART" runways (SPECIAL + no proc)
   oeiData:[], oeiSelectedRwy:'',
-  blockFuel:'', minfFuel:'', fresFuel:'',
+  blockFuel:'', minfFuel:'', fresFuel:'', ballastFuel:null,
   // ddgItems: structured DDG/MEL array [{code, desc, tlr}]
   //   code: ATA number string e.g. "36-12-02-01"
   //   desc: full description string (may be multi-line joined)
@@ -5465,7 +5549,7 @@ function resetStateForNewFlight() {
     altData:[],
     oeiVal:'', stabTrim:'', gaFuel:'',
     oeiData:[], oeiSelectedRwy:'',
-    blockFuel:'', minfFuel:'', fresFuel:'',
+    blockFuel:'', minfFuel:'', fresFuel:'', ballastFuel:null,
     ddgItems:[], melItems:'', overflightPerms:'',
     altRoutes:[], acftType:'', togwActual:0, togwLimit:0,
     hasPerishables:false,
@@ -5878,6 +5962,7 @@ const PATTERNS = {
   BLOCK_FUEL: /(?:^BLOCK\n(\d{5,7})|BLOCK\s+(\d{5,7}))/im,
   MINF_FUEL:  /(?:^MINF\n(\d{5,7})|MINF\s+(\d{5,7}))/im,
   FRES_FUEL:  /(?:^FRES\n(\d{5,7})|FRES\s+(\d{5,7}))/im,
+  BALLAST_FUEL: /^BALLAST\s+(\d{3,7})/im,
 
   // ALT1 fuel: "ALT1 (004016 00.23 0092)" or "ALT1 004016 00.23 0092"
   ALT1_FUEL:    /^ALT1\s+\(?\s*(\d{5,7})/m,
@@ -6260,6 +6345,8 @@ function _ofpRulesetParse(rawText) {
   const blockFuelRaw = extractFuelField(PATTERNS.BLOCK_FUEL);
   const minfFuelRaw  = extractFuelField(PATTERNS.MINF_FUEL);
   const fresFuelRaw  = extractFuelField(PATTERNS.FRES_FUEL);
+  const ballastM     = t.match(PATTERNS.BALLAST_FUEL);
+  const ballastFuel  = ballastM ? parseInt(ballastM[1], 10) : null;
   const alt1FuelRaw  = (() => {
     const m = t.match(PATTERNS.ALT1_FUEL);
     return m ? String(parseInt(m[1], 10)) : '';
@@ -6313,28 +6400,25 @@ function _ofpRulesetParse(rawText) {
   else if (slotNBM)  slotTime = `NOT BEFORE ${_fmtT(slotNBM[1])}`;
   else if (slotBefM) slotTime = `BEFORE ${_fmtT(slotBefM[1])}`;
 
-  // CAT II/III: build { [ICAO]: 'CAT III - RWY ...' } map over all airports in the section.
-  // When an airport has both CAT II and CAT III entries, the higher category is kept.
+  // CAT II/III: build { [ICAO]: [ {cat, rwys} ] } — one entry per OFP line,
+  // preserving every runway/category row so the renderer can display them individually.
+  // Format in OFP (may have separate CAT II and CAT III lines per airport):
+  //   KORD CAT II  - RWY 09C/27C/09R/27L
+  //   KORD CAT III - RWY 09C/27C
   let catIiIiiApproaches = null;
   const catAnchorM = t.match(CAT_II_III_PATTERNS.SECTION_ANCHOR);
   if (catAnchorM) {
-    const secStart  = t.indexOf(catAnchorM[0]);
-    const secText   = t.slice(secStart, Math.min(secStart + 5000, t.length));
-    const CAT_RANK  = { 'III': 3, 'II/III': 2, 'II': 1 };
-    const catRaw    = {}; // { [ICAO]: { cat, rank, display } }
+    const secStart = t.indexOf(catAnchorM[0]);
+    const secText  = t.slice(secStart, Math.min(secStart + 5000, t.length));
+    const catMap   = {}; // { [ICAO]: [ {cat, rwys} ] }
     for (const line of secText.split('\n')) {
       const lm = line.match(CAT_II_III_PATTERNS.AIRPORT_ENTRY);
       if (!lm) continue;
       const icao = lm[1], cat = lm[2], rwys = lm[3].trim();
-      const rank = CAT_RANK[cat] || 0;
-      if (!catRaw[icao] || rank > catRaw[icao].rank) {
-        catRaw[icao] = { cat, rank, display: `CAT ${cat} - RWY ${rwys}` };
-      }
+      if (!catMap[icao]) catMap[icao] = [];
+      catMap[icao].push({ cat, rwys });
     }
-    if (Object.keys(catRaw).length > 0) {
-      catIiIiiApproaches = {};
-      Object.keys(catRaw).forEach(icao => { catIiIiiApproaches[icao] = catRaw[icao].display; });
-    }
+    if (Object.keys(catMap).length > 0) catIiIiiApproaches = catMap;
   }
 
   // ── ETA offsets ───────────────────────────────────────────────────
@@ -6667,6 +6751,7 @@ function _ofpRulesetParse(rawText) {
     blockFuelRaw,
     minfFuelRaw,
     fresFuelRaw,
+    ballastFuel,
     togwActual,
     togwLimit,
     hasPerishables,
@@ -6727,6 +6812,7 @@ function parseOFP() {
     blockFuel:  fuelK(result.blockFuelRaw),
     minfFuel:   fuelK(result.minfFuelRaw),
     fresFuel:   fuelK(result.fresFuelRaw),
+    ballastFuel: result.ballastFuel,
     togwActual: result.togwActual,
     togwLimit:  result.togwLimit,
     ddgItems:   result.ddgItems,
@@ -6972,6 +7058,12 @@ function renderPreflightPhase() {
   h += `<div class="data-row"><span class="data-label">REMF</span><span class="data-value">${ev('destRemf', S.destRemf||'___')}</span></div>`;
   if (S.hasVzfwCkLimit) {
     h += `<div class="data-row" style="padding-top:var(--sp2)"><span class="data-value" style="font-size:13px;font-weight:600;color:var(--sys-red)">⚠ MTOW LTD BY VZFW/CK</span></div>`;
+  }
+  if (S.ballastFuel) {
+    h += `<div class="data-row" style="margin-top:var(--sp2);background:rgba(255,204,0,0.10);border-radius:6px;padding:var(--sp2) var(--sp3)">`;
+    h += `<span class="data-label" style="color:var(--sys-yellow);font-weight:700">BALLAST FUEL</span>`;
+    h += `<span class="data-value" style="color:var(--sys-yellow);font-weight:700">${S.ballastFuel.toLocaleString()}</span>`;
+    h += `</div>`;
   }
   if (S.addlFfAdj !== null) {
     const ffSign = S.addlFfAdj.startsWith('+') ? 'var(--sys-yellow)' : 'var(--sys-green)';
@@ -7264,11 +7356,21 @@ function renderDescentAirportSummary() {
   if (_RANK[cat.WX]    > 0) badges.push(_badge('WX',    cat.WX));
   if (curfewLevel)          badges.push(_badge('CURFEW', curfewLevel));
 
-  // CAT II/III note (backward-compatible with legacy string)
-  const catNote = (() => {
-    if (!S.catIiIiiApproaches) return null;
-    if (typeof S.catIiIiiApproaches === 'object') return S.catIiIiiApproaches[selApt.icao] || null;
-    return selApt.icao === S.destIcao ? S.catIiIiiApproaches : null;
+  // CAT II/III rows — one line per OFP entry for this airport.
+  // Backward-compatible: legacy string value renders as a single row.
+  const catRows = (() => {
+    if (!S.catIiIiiApproaches) return [];
+    if (typeof S.catIiIiiApproaches === 'object') {
+      const entries = S.catIiIiiApproaches[selApt.icao];
+      if (!entries) return [];
+      // New format: array of {cat, rwys}
+      if (Array.isArray(entries)) return entries;
+      // Intermediate single-string format (saved flights from earlier build)
+      return [{ cat: null, rwys: null, legacy: entries }];
+    }
+    // Oldest legacy: plain string on S directly
+    if (selApt.icao === S.destIcao) return [{ cat: null, rwys: null, legacy: S.catIiIiiApproaches }];
+    return [];
   })();
 
   let h = `<div class="subcard">`;
@@ -7283,7 +7385,6 @@ function renderDescentAirportSummary() {
     h += `<span style="color:var(--label3);margin:0 3px">·</span>`;
     h += badges.join(`<span style="color:var(--label4);margin:0 2px">/</span>`);
   }
-  // Alternate picker trigger (dropdown chevron) — only when alternates exist
   if (allApts.length > 1) {
     h += `<button style="margin-left:auto;display:flex;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--tint);padding:0 0 0 var(--sp2);min-height:44px;flex-shrink:0" onclick="openDescentAptPicker()" aria-label="Select airport">`;
     h += `<span style="font-size:var(--type-overline);font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:0.04em">${esc(selApt.role)}</span>`;
@@ -7294,11 +7395,18 @@ function renderDescentAirportSummary() {
   }
   h += `</div>`;
 
-  // CAT II/III line (if present)
-  if (catNote) {
-    h += `<div style="display:flex;align-items:baseline;gap:var(--sp2);padding-left:18px;padding-top:var(--sp1)">`;
-    h += `<span style="font-size:var(--type-overline);font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:0.04em;flex-shrink:0">CAT II/III</span>`;
-    h += `<span style="font-family:var(--font-mono);font-size:13px;color:var(--tint)">${esc(catNote)}</span>`;
+  // CAT II/III rows — one per entry, separated by a light rule
+  if (catRows.length) {
+    h += `<div style="padding-left:18px;padding-top:var(--sp2);display:flex;flex-direction:column;gap:3px;border-top:0.5px solid var(--sep);margin-top:var(--sp2);padding-top:var(--sp2)">`;
+    catRows.forEach(row => {
+      const label = row.legacy
+        ? row.legacy
+        : `CAT ${row.cat} — RWY ${row.rwys}`;
+      h += `<div style="display:flex;align-items:baseline;gap:var(--sp2)">`;
+      h += `<span style="font-size:var(--type-overline);font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:0.04em;flex-shrink:0;min-width:62px">CAT ${row.cat || 'II/III'}</span>`;
+      h += `<span style="font-family:var(--font-mono);font-size:13px;color:var(--tint)">${esc(row.rwys || row.legacy || '')}</span>`;
+      h += `</div>`;
+    });
     h += `</div>`;
   }
 
@@ -7802,6 +7910,7 @@ function renderNotamGroups(rwyGroups) {
   function _subCat(item) {
     const lbl = ((item.label || '') + ' ' + (item.rowLabel || '')).toUpperCase();
     if (/\bCLSD\b/.test(lbl)) return 'CLOSED';
+    if (/\bTKOF\s+MIN\b|\bTAKEOFF\s+MIN|\bODP\b|\bMIN\s+CLIMB\b|\bFT\/NM\b/.test(lbl)) return 'TKOF_MIN';
     if (/\bPAPI\b|\bVASI\b|\bALS\b|\bALSF\b|\bMALSR?\b|\bSSALR?\b|\bREIL\b|\bTDZ\b|\bRCLL\b|\bLGTS?\b|\bLIGHT|\bLEAD\s+OFF|\bTKOF\s+HOLD/.test(lbl)) return 'LIGHTING';
     if (/\bILS\b|\bLOC\b|\bGLS\b|\bG\/S\b|\bGLIDE|\bRNAV\b|\bRNP\b|\bVOR\b|\bNDB\b|\bGPS\b|\bGNSS\b|\bRAIM\b|\bDME\b|\bVORTAC\b|\bMARKER\b|\bOM\b|\bMM\b|\bIM\b|\bLOM\b|\bLMM\b|\bCAT\s+I/.test(lbl)) return 'APPROACH';
     if (/PROC\b|ALT\s+MA|ALT\s+MINS|DSPLCD|THR\b|CHANGE|CHG\b|\bSTAR\b|\bSID\b/.test(lbl)) return 'PROCEDURE';
@@ -7849,6 +7958,7 @@ function renderNotamGroups(rwyGroups) {
   // Multiple items → collapsible sub-header with count.
   const SUB_LABELS = {
     CLOSED:    'Closed',
+    TKOF_MIN:  'Takeoff Minimums / ODP',
     APPROACH:  'Approach / Navaid',
     LIGHTING:  'Runway Lighting',
     PROCEDURE: 'Procedure Changes',
@@ -7916,7 +8026,7 @@ function renderNotamGroups(rwyGroups) {
     const rwyLabel = grp.rwy ? `RWY ${grp.rwy}` : key.replace('RWY-', 'RWY ');
 
     // Bucket items by sub-category in display priority order
-    const buckets = { CLOSED: [], APPROACH: [], LIGHTING: [], PROCEDURE: [], OTHER: [] };
+    const buckets = { CLOSED: [], TKOF_MIN: [], APPROACH: [], LIGHTING: [], PROCEDURE: [], OTHER: [] };
     opItems.forEach(item => { buckets[_subCat(item)].push(item); });
 
     h += `<div class="notam-group">`;
@@ -7927,7 +8037,7 @@ function renderNotamGroups(rwyGroups) {
     h += `<div class="notam-group-body" hidden>`;
 
     // Render each sub-category in priority order
-    for (const cat of ['CLOSED', 'APPROACH', 'LIGHTING', 'PROCEDURE', 'OTHER']) {
+    for (const cat of ['CLOSED', 'TKOF_MIN', 'APPROACH', 'LIGHTING', 'PROCEDURE', 'OTHER']) {
       h += _renderSubGroup(cat, buckets[cat]);
     }
 
